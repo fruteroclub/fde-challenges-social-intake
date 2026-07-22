@@ -1,0 +1,76 @@
+name: FDE intake refresh
+
+on:
+  schedule:
+    # Every 6 hours — conservative to stay well under Notion API rate limits.
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install deps and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Bundle production code
+        run: |
+          npm ci --omit=dev
+          tar czf bundle.tar.gz dist package.json node_modules
+
+      - name: Install Tenki CLI
+        run: curl -fsSL https://tenki.cloud/install.sh | bash
+
+      - name: Run worker in a Tenki sandbox
+        env:
+          TENKI_API_KEY: ${{ secrets.TENKI_API_KEY }}
+          TENKI_IMAGE: ${{ vars.TENKI_IMAGE }} # e.g. myworkspace/fde-intake-worker:latest
+          TENKI_AUTH_VOLUME_ID: ${{ secrets.TENKI_AUTH_VOLUME_ID }}
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          X_POST_URL: ${{ vars.X_POST_URL }}
+          LINKEDIN_POST_URL: ${{ vars.LINKEDIN_POST_URL }}
+        run: |
+          set -euo pipefail
+          tenki login --api-key "$TENKI_API_KEY"
+
+          # NOTE: not yet verified against a live run. `create` doesn't
+          # document a --json flag, so this tags the session and resolves its
+          # ID via `sandbox list --json` instead of parsing `create`'s stdout.
+          # Confirm the `list --json` field names (assumed: .id, .tags) against
+          # a real response before trusting this in production CI.
+          RUN_TAG="gha-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          tenki sandbox create \
+            --image "$TENKI_IMAGE" \
+            --volume "$TENKI_AUTH_VOLUME_ID:/workspace/secrets:ro" \
+            --tags "$RUN_TAG" \
+            --env NEBIUS_API_KEY="$NEBIUS_API_KEY" \
+            --env NOTION_API_KEY="$NOTION_API_KEY" \
+            --env NOTION_DATABASE_ID="$NOTION_DATABASE_ID" \
+            --env X_POST_URL="$X_POST_URL" \
+            --env LINKEDIN_POST_URL="$LINKEDIN_POST_URL" \
+            --env X_STORAGE_STATE_PATH=/workspace/secrets/x.storageState.json \
+            --env LINKEDIN_STORAGE_STATE_PATH=/workspace/secrets/linkedin.storageState.json
+
+          SESSION_ID=$(tenki sandbox list --json | jq -r --arg tag "$RUN_TAG" \
+            '.[] | select(.tags != null and (.tags | index($tag))) | .id' | head -n1)
+
+          if [ -z "$SESSION_ID" ]; then
+            echo "Could not resolve session ID for tag $RUN_TAG" >&2
+            exit 1
+          fi
+
+          tenki sandbox write --session "$SESSION_ID" --path /home/tenki/bundle.tar.gz --data-file ./bundle.tar.gz
+          tenki sandbox exec --session "$SESSION_ID" -c 'mkdir -p /home/tenki/app && tar xzf /home/tenki/bundle.tar.gz -C /home/tenki/app'
+          tenki sandbox exec --session "$SESSION_ID" -c 'cd /home/tenki/app && node dist/index.js'
+          tenki sandbox terminate --session "$SESSION_ID"

@@ -1,0 +1,21 @@
+{
+  "name": "fde-challenges-social-intake",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "capture-auth": "tsx src/capture-auth-state.ts"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "playwright": "1.61.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
+  }
+}
