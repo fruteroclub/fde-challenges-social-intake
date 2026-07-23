@@ -283,6 +283,16 @@ breakdown, including why the refresh cadence is conservative:
 
 ## Known limitations
 
+- **Currently blocking: two Tenki CLI (v1.0.0) bugs stop Step 2 onward for
+  everyone**, not just this account. (1) The interactive login callback
+  receives a `session_token` in its URL but the CLI reports it missing —
+  reproduced via `tenki login --no-browser`. (2) `--api-key` auth never
+  resolves a `project_id`/`workspace_id`, and no CLI flag or env var accepts
+  one manually, even though the account genuinely has exactly one of each
+  (confirmed via the SDK's `whoAmI()`, bypassing the CLI entirely). Full
+  repro in
+  [`../../workstreams/fde-challenges-social-intake/DECISIONS.md`](../../workstreams/fde-challenges-social-intake/DECISIONS.md)'s
+  2026-07-23 entry. Reported to Tenki support; this note stays until resolved.
 - LinkedIn's comment DOM selectors in `collect.ts` are best-effort and likely
   need adjustment against a live post — see
   [`docs/collection-design.md`](docs/collection-design.md).
