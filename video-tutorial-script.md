@@ -2,7 +2,7 @@
 
 ## Recording Target
 
-Target edited runtime: 18-22 minutes. This has more moving parts than the
+Target edited runtime: 18-23 minutes. This has more moving parts than the
 Nebius Webinar 1 script (Tenki + Nebius Token Factory + Notion + GitHub
 Actions vs. a single cloud VM), so expect more to cut in editing, not less.
 
@@ -64,17 +64,20 @@ By the end of the video, the viewer has seen:
 | --- | --- | --- | --- |
 | 0:00-1:00 | Open | Camera / README | What Week 1 is and where it stops |
 | 1:00-3:00 | Architecture | Diagram | Tenki Sandbox vs. Nebius Token Factory vs. Notion, and why a recurring worker |
-| 3:00-4:00 | Tenki CLI install + login | Terminal | Authenticate and confirm workspace |
-| 4:00-6:00 | Sandbox quickstart | Terminal | Ground the primitive: create, exec, terminate |
-| 6:00-9:00 | Build the Template | Terminal + template/README.md | Bake Chromium once so workers skip cold install |
-| 9:00-11:00 | Persistent Volume | Terminal | Durable auth state across disposable workers |
-| 11:00-13:30 | Capture test-account session | Browser + terminal | Human logs in by hand; script only saves the session |
-| 13:30-14:30 | Seed the volume | Terminal | Get the storageState files into Tenki |
-| 14:30-16:00 | Notion + Nebius setup | Browser + terminal | Database schema, integration, API key |
-| 16:00-18:30 | Run the worker locally | Terminal | Collection -> extraction -> Notion, live, whatever happens |
-| 18:30-20:30 | Wire GitHub Actions + trigger | Browser + terminal | The actual scheduled-worker pattern |
-| 20:30-21:30 | Show Notion results | Browser | The payoff: real scored challenge candidates |
-| 21:30-22:30 | Wrap + recap + CTA | Camera | Cost recap, what's next, reply to the launch post |
+| 3:00-5:00 | Explore Tenki + install CLI + API key auth | Browser + terminal | Site/docs orientation, why API key not browser login |
+| 5:00-7:00 | Sandbox quickstart | Terminal | Ground the primitive: create, exec, terminate |
+| 7:00-10:00 | Build the Template | Terminal + template/README.md | Bake Chromium once so workers skip cold install |
+| 10:00-12:00 | Persistent Volume | Terminal | Durable auth state across disposable workers |
+| 12:00-14:30 | Capture test-account session | Browser + terminal | Human logs in by hand; script only saves the session |
+| 14:30-15:30 | Seed the volume | Terminal | Get the storageState files into Tenki |
+| 15:30-17:00 | Notion + Nebius setup | Browser + terminal | Database schema, integration, API key |
+| 17:00-19:30 | Run the worker locally | Terminal | Collection -> extraction -> Notion, live, whatever happens |
+| 19:30-21:30 | Wire GitHub Actions + trigger | Browser + terminal | The actual scheduled-worker pattern |
+| 21:30-22:30 | Show Notion results | Browser | The payoff: real scored challenge candidates |
+| 22:30-23:30 | Wrap + recap + CTA | Camera | Cost recap, what's next, reply to the launch post |
+
+All times past Segment 3 shifted +1 minute to absorb the added dashboard/API-key
+walkthrough — approximate either way pre-dry-run, not worth precision here.
 
 If running long, cut Segment 4 (quickstart) to a voiceover-only recap and skip
 straight to the real template build — the quickstart is nice-to-have grounding,
@@ -185,32 +188,72 @@ Learning beat:
   authwall. Say this on camera with the actual URLs tested, it's a good,
   concrete "here's what we found out" beat.
 
-## Segment 3: Install and Authenticate the Tenki CLI
+## Segment 3: Explore Tenki, Install the CLI, Authenticate with an API Key
 
-Target time: 3:00-4:00
+Target time: 3:00-5:00
+
+Screen: tenki.cloud homepage, then the docs, then app.tenki.cloud, then terminal.
+
+Narration:
+
+"Quick tour before we touch the terminal. This is Tenki Cloud — disposable
+Linux microVMs, billed per second. Their docs are what we've been building
+this whole pipeline from, so it's worth knowing they're here: sandbox
+quickstart, templates, persistent volumes, all of it."
+
+Screen action: briefly show tenki.cloud, then the docs sidebar (Sandbox
+section) — a few seconds each, this is orientation, not a reading session.
 
 Run locally:
 
 ```bash
 curl -fsSL https://tenki.cloud/install.sh | bash
-tenki login
+```
+
+Narration:
+
+"Now, authentication — and here's a real thing that happened while building
+this: the default `tenki login` opens a browser and waits for it to redirect
+back to a `127.0.0.1` localhost callback. That callback failed in my
+environment — never completed. Rather than fight it, we're authenticating
+with an API key instead, non-interactively. This isn't just a workaround: the
+GitHub Actions workflow later in this video needs an API key anyway, so we're
+generating something we'll reuse, not doing extra work."
+
+Screen action: sign in at [app.tenki.cloud](https://app.tenki.cloud), select
+Tenki Sandbox.
+
+Narration:
+
+"First time through, this completes Sandbox onboarding, and Tenki generates
+an initial API key automatically — I'm copying it now. If you need another
+one later, say a separate key for CI, that's under API Keys -> Create API
+Key."
+
+**Do not show the actual key value on screen** — cut away or blur before it's
+visible, then continue with it already exported.
+
+```bash
+export TENKI_API_KEY=tk_your_api_key
+tenki login --api-key "$TENKI_API_KEY"
 tenki status
 ```
 
 Narration:
 
-"`tenki login` opens a browser sign-in and picks a workspace automatically.
-`tenki status` confirms it and shows the workspace — we'll need that ID for
-everything downstream."
+"`tenki status` confirms we're in and shows the workspace — we'll need that
+ID for everything downstream."
 
 Learning beat:
 
 - Note the workspace name/ID on screen (not sensitive, fine to show) — call it
   out verbally since every following command references it.
+- This is a good moment to say plainly that a real bug got hit and routed
+  around, live — that's the actual FDE-relevant content, not a scripted beat.
 
 ## Segment 4: Sandbox Quickstart
 
-Target time: 4:00-6:00
+Target time: 5:00-7:00
 
 Run locally:
 
@@ -237,7 +280,7 @@ Learning beat:
 
 ## Segment 5: Build the Template
 
-Target time: 6:00-9:00
+Target time: 7:00-10:00
 
 Screen: `template/README.md` and `template/setup-script.sh`.
 
@@ -291,7 +334,7 @@ Learning beat:
 
 ## Segment 6: Persistent Volume
 
-Target time: 9:00-11:00
+Target time: 10:00-12:00
 
 Run locally:
 
@@ -314,7 +357,7 @@ Learning beat:
 
 ## Segment 7: Capture the Test-Account Session
 
-Target time: 11:00-13:30
+Target time: 12:00-14:30
 
 Run locally:
 
@@ -354,7 +397,7 @@ Learning beat:
 
 ## Segment 8: Seed the Volume
 
-Target time: 13:30-14:30
+Target time: 14:30-15:30
 
 Run locally:
 
@@ -380,7 +423,7 @@ selector live.
 
 ## Segment 9: Notion and Nebius Setup
 
-Target time: 14:30-16:00
+Target time: 15:30-17:00
 
 Screen: Notion, then Nebius Token Factory console.
 
@@ -407,7 +450,7 @@ Learning beat:
 
 ## Segment 10: Run the Worker Locally
 
-Target time: 16:00-18:30
+Target time: 17:00-19:30
 
 Run locally:
 
@@ -433,7 +476,7 @@ Learning beat:
 
 ## Segment 11: Wire GitHub Actions and Trigger
 
-Target time: 18:30-20:30
+Target time: 19:30-21:30
 
 Screen: https://github.com/fruteroclub/fde-challenges-social-intake settings
 (secrets/variables), then the Actions tab.
@@ -467,7 +510,7 @@ doing one real job, and disappearing."
 
 ## Segment 12: Show the Results
 
-Target time: 20:30-21:30
+Target time: 21:30-22:30
 
 Screen: the Notion database, populated.
 
@@ -480,7 +523,7 @@ clarification loop yet, just filtering it out cleanly."
 
 ## Segment 13: Wrap, Recap, CTA
 
-Target time: 21:30-22:30
+Target time: 22:30-23:30
 
 Narration:
 

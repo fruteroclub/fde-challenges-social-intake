@@ -53,21 +53,42 @@ docs/                      Companion deep-dive docs, one per major decision
 video-tutorial-script.md  Filming script for the Week 1 video
 ```
 
-## Step 1 — Install and authenticate the Tenki CLI
+## Step 1 — Install the Tenki CLI and authenticate with an API key
 
 Why: everything downstream (templates, volumes, sandbox sessions) is
 workspace-scoped, so you need to be signed in and know your workspace before
 anything else works.
 
+`tenki login`'s default interactive flow opens a browser and waits for an
+OAuth redirect to a `127.0.0.1` localhost callback — confirmed hands-on that
+this fails in some environments (the callback never completes). Skip it
+entirely and authenticate with an API key instead, which also sets up
+something Step 10 needs anyway: GitHub Actions authenticates the same way,
+via `TENKI_API_KEY` as a repo secret.
+
 ```bash
 curl -fsSL https://tenki.cloud/install.sh | bash
-tenki login
+```
+
+Generate the key in the dashboard, not the CLI:
+
+1. Sign in at [app.tenki.cloud](https://app.tenki.cloud) and select **Tenki
+   Sandbox**. First time through, this completes Sandbox onboarding and Tenki
+   generates an initial API key for you — copy it when shown.
+2. For any additional key (e.g. a separate one for CI later): **API Keys** ->
+   **Create API Key** -> name it, optionally set an expiration -> **Create
+   Key** -> copy it.
+
+Then authenticate the CLI non-interactively:
+
+```bash
+export TENKI_API_KEY=tk_your_api_key
+tenki login --api-key "$TENKI_API_KEY"
 tenki status
 ```
 
-`tenki login` opens a browser sign-in and auto-selects a workspace. `tenki
-status` confirms it and prints the workspace — note that name/ID, every
-following command references it.
+`tenki status` confirms it and prints the workspace — note that name/ID,
+every following command references it.
 
 Deeper: [`docs/tenki-sandbox-fundamentals.md`](docs/tenki-sandbox-fundamentals.md).
 
