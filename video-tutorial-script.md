@@ -435,9 +435,10 @@ Learning beat:
 
 Target time: 18:30-20:30
 
-Screen: GitHub repo settings (secrets/variables), then Actions tab.
+Screen: https://github.com/fruteroclub/fde-challenges-social-intake settings
+(secrets/variables), then the Actions tab.
 
-Push the repo, then set:
+Set:
 
 - Secrets: `TENKI_API_KEY`, `TENKI_AUTH_VOLUME_ID`, `NEBIUS_API_KEY`,
   `NOTION_API_KEY`, `NOTION_DATABASE_ID`

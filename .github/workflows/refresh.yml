@@ -1,9 +1,16 @@
 name: FDE intake refresh
 
 on:
-  schedule:
-    # Every 6 hours — conservative to stay well under Notion API rate limits.
-    - cron: "0 */6 * * *"
+  # The `schedule` trigger is disabled until the one-time setup (Tenki
+  # template, volume, Notion database, and the secrets/variables listed in
+  # README.md Step 10) is actually done. GitHub Actions fires `schedule` the
+  # moment this file exists on the default branch, whether or not the
+  # pipeline is ready — it doesn't check readiness, it just runs and fails.
+  # Uncomment once end-to-end (README Steps 1-11) has been verified once
+  # manually via `workflow_dispatch`.
+  # schedule:
+  #   # Every 6 hours — conservative to stay well under Notion API rate limits.
+  #   - cron: "0 */6 * * *"
   workflow_dispatch: {}
 
 jobs:
