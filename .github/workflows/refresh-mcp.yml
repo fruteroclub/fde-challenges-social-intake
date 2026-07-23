@@ -1,0 +1,39 @@
+name: FDE intake refresh (Tenki MCP fallback)
+
+on:
+  # Enable only after workflow_dispatch completes successfully.
+  # schedule:
+  #   - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build pinned Tenki MCP server
+        run: |
+          git clone https://github.com/opencolin/tenki-mcp.git .tools/tenki-mcp
+          git -C .tools/tenki-mcp checkout 8278e81
+          npm --prefix .tools/tenki-mcp ci
+          npm --prefix .tools/tenki-mcp run build
+          npm --prefix mcp-workaround ci
+
+      - name: Run worker in a Tenki sandbox through MCP
+        env:
+          TENKI_API_KEY: ${{ secrets.TENKI_API_KEY }}
+          TENKI_MCP_SERVER: ${{ github.workspace }}/.tools/tenki-mcp/dist/index.js
+          TENKI_IMAGE: ${{ vars.TENKI_IMAGE }}
+          TENKI_AUTH_VOLUME_ID: ${{ secrets.TENKI_AUTH_VOLUME_ID }}
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          X_POST_URL: ${{ vars.X_POST_URL }}
+          LINKEDIN_POST_URL: ${{ vars.LINKEDIN_POST_URL }}
+          FDE_COMMIT_SHA: ${{ github.sha }}
+        run: node mcp-workaround/src/run-worker.mjs

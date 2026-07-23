@@ -50,6 +50,7 @@ src/
 template/                 Tenki Sandbox template (Playwright + Chromium pre-baked)
 docs/                      Companion deep-dive docs, one per major decision
 .github/workflows/        GitHub Actions cron that launches the sandbox worker
+mcp-workaround/           Temporary pinned MCP fallback for the CLI scope bug
 video-tutorial-script.md  Filming script for the Week 1 video
 ```
 
@@ -104,6 +105,15 @@ tenki sandbox set <session-id>
 tenki sandbox exec -c 'uname -a && whoami'
 tenki sandbox terminate
 ```
+
+### Temporary fallback: Tenki MCP
+
+If `tenki login --api-key` succeeds but `tenki sandbox create` returns
+`project_id is required`, follow the isolated
+[`mcp-workaround/`](mcp-workaround/README.md) path instead. It uses Tenki's
+API through a pinned MCP server, explicitly resolves workspace/project scope,
+and includes a separate GitHub Actions workflow. Keep this main CLI path as
+the default and remove the fallback once the CLI bug is fixed.
 
 ## Step 3 — Build and publish the Tenki template
 

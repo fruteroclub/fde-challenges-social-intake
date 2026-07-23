@@ -1,0 +1,16 @@
+{
+  "name": "fde-challenges-tenki-mcp-workaround",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/*.mjs",
+    "proof": "node src/sandbox-proof.mjs",
+    "provision-image": "node src/provision-image.mjs",
+    "create-volume": "node src/create-volume.mjs",
+    "seed-auth-volume": "node src/seed-auth-volume.mjs",
+    "run-worker": "node src/run-worker.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

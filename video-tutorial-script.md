@@ -2,7 +2,7 @@
 
 ## Recording Target
 
-Target edited runtime: 18-23 minutes. This has more moving parts than the
+Target edited runtime: 20-25 minutes. This has more moving parts than the
 Nebius Webinar 1 script (Tenki + Nebius Token Factory + Notion + GitHub
 Actions vs. a single cloud VM), so expect more to cut in editing, not less.
 
@@ -19,8 +19,8 @@ are flagged below as likely to need live debugging:
 
 - **LinkedIn's comment selectors** (Segment 8) — best-effort CSS selectors
   that were never checked against a live post.
-- **The GitHub Actions session-ID lookup** (Segment 11) — inferred from Tenki's
-  docs, not verified against a real CLI response.
+- **The MCP worker run** (Segment 11) — unverified against this account; it
+  clones the worker source inside the sandbox instead of using the CLI bundle.
 
 That's fine content, not a failure to hide. "Here's what broke and how I
 figured it out" is exactly the FDE-relevant material this series is for. Don't
@@ -30,9 +30,9 @@ pre-script a fake success for these two — narrate the actual debugging live.
 
 By the end of the video, the viewer has seen:
 
-- The Tenki CLI installed, authenticated, and a first sandbox created and
-  torn down (the "hello world" from Tenki's own quickstart).
-- A published Tenki Sandbox template with Chromium pre-baked.
+- A first Tenki sandbox created and torn down through the temporary MCP
+  fallback, after showing the CLI API-key scope bug it works around.
+- A published Tenki Sandbox image with Chromium pre-baked.
 - A persistent volume holding an authenticated test-account session, reused
   across ephemeral worker runs.
 - Why the collection account is a dedicated test/burner account, not
@@ -55,7 +55,7 @@ By the end of the video, the viewer has seen:
 - Terminate every Tenki sandbox session shown before ending the recording —
   billing is per-second, but a forgotten `--sticky` session is still a real
   cost.
-- When a command takes longer than 20-30 seconds (template build, Playwright
+- When a command takes longer than 20-30 seconds (image provisioning, Playwright
   system-dep install), pause recording or speed-ramp in editing.
 
 ## Timeline
@@ -64,23 +64,24 @@ By the end of the video, the viewer has seen:
 | --- | --- | --- | --- |
 | 0:00-1:00 | Open | Camera / README | What Week 1 is and where it stops |
 | 1:00-3:00 | Architecture | Diagram | Tenki Sandbox vs. Nebius Token Factory vs. Notion, and why a recurring worker |
-| 3:00-5:00 | Explore Tenki + install CLI + API key auth | Browser + terminal | Site/docs orientation, why API key not browser login |
-| 5:00-7:00 | Sandbox quickstart | Terminal | Ground the primitive: create, exec, terminate |
-| 7:00-10:00 | Build the Template | Terminal + template/README.md | Bake Chromium once so workers skip cold install |
-| 10:00-12:00 | Persistent Volume | Terminal | Durable auth state across disposable workers |
-| 12:00-14:30 | Capture test-account session | Browser + terminal | Human logs in by hand; script only saves the session |
-| 14:30-15:30 | Seed the volume | Terminal | Get the storageState files into Tenki |
-| 15:30-17:00 | Notion + Nebius setup | Browser + terminal | Database schema, integration, API key |
-| 17:00-19:30 | Run the worker locally | Terminal | Collection -> extraction -> Notion, live, whatever happens |
-| 19:30-21:30 | Wire GitHub Actions + trigger | Browser + terminal | The actual scheduled-worker pattern |
-| 21:30-22:30 | Show Notion results | Browser | The payoff: real scored challenge candidates |
-| 22:30-23:30 | Wrap + recap + CTA | Camera | Cost recap, what's next, reply to the launch post |
+| 3:00-6:00 | Explore Tenki + API key + MCP fallback | Browser + terminal | Show the CLI bug and the scoped API workaround |
+| 6:00-8:00 | Sandbox quickstart | Terminal | Ground the primitive: create, exec, terminate |
+| 8:00-11:00 | Build the prepared image | Terminal + template/README.md | Bake Chromium once so workers skip cold install |
+| 11:00-13:00 | Persistent Volume | Terminal | Durable auth state across disposable workers |
+| 13:00-15:30 | Capture test-account session | Browser + terminal | Human logs in by hand; script only saves the session |
+| 15:30-16:30 | Seed the volume | Terminal | Get the storageState files into Tenki |
+| 16:30-18:00 | Notion + Nebius setup | Browser + terminal | Database schema, integration, API key |
+| 18:00-20:30 | Run the worker locally | Terminal | Collection -> extraction -> Notion, live, whatever happens |
+| 20:30-22:30 | Wire GitHub Actions + trigger | Browser + terminal | The actual scheduled-worker pattern |
+| 22:30-23:30 | Show Notion results | Browser | The payoff: real scored challenge candidates |
+| 23:30-24:30 | Wrap + recap + CTA | Camera | Cost recap, what's next, reply to the launch post |
 
-All times past Segment 3 shifted +1 minute to absorb the added dashboard/API-key
-walkthrough — approximate either way pre-dry-run, not worth precision here.
+All times past Segment 3 shifted +2 minutes to absorb the dashboard/API-key
+walkthrough and MCP fallback setup — approximate either way pre-dry-run, not
+worth precision here.
 
 If running long, cut Segment 4 (quickstart) to a voiceover-only recap and skip
-straight to the real template build — the quickstart is nice-to-have grounding,
+straight to the prepared-image build — the quickstart is nice-to-have grounding,
 not essential once the architecture segment has explained it.
 
 ## Architecture Diagram
@@ -89,15 +90,15 @@ Show this early, then return to it before the wrap.
 
 ```mermaid
 flowchart LR
-  gha["GitHub Actions<br/>schedule: cron"]
+  gha["GitHub Actions<br/>schedule: cron + MCP driver"]
   tenki["Tenki Sandbox<br/>ephemeral microVM"]
-  tpl["Template<br/>Chromium pre-baked"]
+  tpl["Prepared image<br/>Chromium pre-baked"]
   vol["Persistent Volume<br/>auth storageState (read-only)"]
   post["X / LinkedIn<br/>launch post replies"]
   tf["Nebius Token Factory<br/>Nemotron model"]
   notion["Notion<br/>FDE Challenges DB"]
 
-  gha -->|"tenki sandbox create --image"| tenki
+  gha -->|"MCP CreateSession"| tenki
   tpl -.->|"published image"| tenki
   vol -->|"mounted :ro"| tenki
   tenki -->|"Playwright, authenticated"| post
@@ -110,7 +111,7 @@ Narration:
 
 "Four things stay separate. GitHub Actions is just the clock — it fires on a
 schedule and does nothing else. Tenki Sandbox is the disposable compute — it
-boots from a template that already has Chromium installed, does the work, and
+boots from an image that already has Chromium installed, does the work, and
 disappears. Nebius Token Factory is where the actual language model call
 happens. Notion is where the results land for a human to review. None of these run
 all the time. That's the whole point."
@@ -132,7 +133,7 @@ Open these tabs before recording:
 
 Terminal prep:
 
-- One local terminal for `tenki` CLI and `npm` commands.
+- One local terminal for the MCP fallback and `npm` commands.
 - A browser window for the test/burner account login (Segment 7) — keep this
   window framed so the login form doesn't show the actual password being typed.
 
@@ -188,9 +189,9 @@ Learning beat:
   authwall. Say this on camera with the actual URLs tested, it's a good,
   concrete "here's what we found out" beat.
 
-## Segment 3: Explore Tenki, Install the CLI, Authenticate with an API Key
+## Segment 3: Explore Tenki, Show the CLI Bug, and Use the MCP Fallback
 
-Target time: 3:00-5:00
+Target time: 3:00-6:00
 
 Screen: tenki.cloud homepage, then the docs, then app.tenki.cloud, then terminal.
 
@@ -213,12 +214,11 @@ curl -fsSL https://tenki.cloud/install.sh | bash
 Narration:
 
 "Now, authentication — and here's a real thing that happened while building
-this: the default `tenki login` opens a browser and waits for it to redirect
-back to a `127.0.0.1` localhost callback. That callback failed in my
-environment — never completed. Rather than fight it, we're authenticating
-with an API key instead, non-interactively. This isn't just a workaround: the
-GitHub Actions workflow later in this video needs an API key anyway, so we're
-generating something we'll reuse, not doing extra work."
+this. The default `tenki login` browser callback failed locally, so we used an
+API key. Then the CLI accepted that key but refused to create a sandbox because
+it had not retained a project ID. We reported that to Tenki. Their DevRel team
+shared an MCP implementation that calls `WhoAmI`, resolves the project, and
+sends it explicitly. That lets us keep building while the CLI issue is fixed."
 
 Screen action: sign in at [app.tenki.cloud](https://app.tenki.cloud), select
 Tenki Sandbox.
@@ -234,53 +234,59 @@ Key."
 visible, then continue with it already exported.
 
 ```bash
+git clone https://github.com/opencolin/tenki-mcp.git /tmp/tenki-mcp
+git -C /tmp/tenki-mcp checkout 8278e81
+npm --prefix /tmp/tenki-mcp ci && npm --prefix /tmp/tenki-mcp run build
+
+cd mcp-workaround
+npm ci
 export TENKI_API_KEY=tk_your_api_key
-tenki login --api-key "$TENKI_API_KEY"
-tenki status
+export TENKI_MCP_SERVER=/tmp/tenki-mcp/dist/index.js
+npm run proof
 ```
 
 Narration:
 
-"`tenki status` confirms we're in and shows the workspace — we'll need that
-ID for everything downstream."
+"The proof first calls `WhoAmI`, then creates a tiny disposable sandbox with
+that workspace and project, runs `uname` and `whoami`, and terminates it in a
+`finally` block. That is a good workaround because it is explicit about the
+scope the CLI dropped, rather than guessing or storing an ID in source code."
 
 Learning beat:
 
-- Note the workspace name/ID on screen (not sensitive, fine to show) — call it
-  out verbally since every following command references it.
-- This is a good moment to say plainly that a real bug got hit and routed
-  around, live — that's the actual FDE-relevant content, not a scripted beat.
+- Note the workspace/project ID on screen (not sensitive, fine to show), but
+  never show the API key.
+- Name the two MCP gaps we found: this version publishes an image from a
+  prepared sandbox rather than directly from a Template, and it writes text
+  files rather than the original binary bundle. Those are concrete product
+  feedback, not hidden caveats.
 
 ## Segment 4: Sandbox Quickstart
 
-Target time: 5:00-7:00
+Target time: 6:00-8:00
 
 Run locally:
 
 ```bash
-tenki sandbox create --name demo
-tenki sandbox set <session-id>
-tenki sandbox exec -c 'uname -a && whoami'
-tenki sandbox terminate
+npm run proof
 ```
 
 Narration:
 
 "Before building the real thing, here's the primitive in its simplest form.
 This is a disposable Linux microVM — sub-2-second boot, billed per second.
-`create` boots it, `exec` runs a command inside it, `terminate` tears it down.
-Everything after this is the same three verbs, just wired to our actual
-workflow instead of `uname -a`."
+The MCP proof calls `create`, `exec`, and `terminate` through Tenki's API.
+Everything after this is the same lifecycle, just wired to our actual workflow
+instead of `uname -a`."
 
 Learning beat:
 
-- This is literally Tenki's own quickstart — worth saying so, it's the
-  cheapest way to build trust that the tool does what it claims before
-  layering complexity on top.
+- This is Tenki's quickstart lifecycle with the missing API-key project scope
+  supplied explicitly, so the workaround is easy to compare with the CLI docs.
 
-## Segment 5: Build the Template
+## Segment 5: Build the Prepared Image
 
-Target time: 7:00-10:00
+Target time: 8:00-11:00
 
 Screen: `template/README.md` and `template/setup-script.sh`.
 
@@ -295,29 +301,20 @@ Narration:
 "This setup script installs Playwright and its Chromium browser once, at
 build time, not on every worker run. Without this, every sandbox session would
 spend a minute or two downloading and installing the browser before doing any
-real work — for a job that itself only takes a few seconds. The template is
-where that cost gets paid exactly once."
+real work — for a job that itself only takes a few seconds. The prepared image
+is where that cost gets paid exactly once. The main guide uses Tenki Templates;
+this MCP fallback instead prepares a temporary builder sandbox, publishes its
+disk as a private image, and destroys the builder. Same runtime result, plus
+useful product feedback about the missing Template-to-registry bridge."
 
 Run locally:
 
 ```bash
-tenki sandbox template create \
-  --name fde-intake-worker \
-  --setup-script "$(cat template/setup-script.sh)" \
-  --tags fde-challenges-social-intake
-
-tenki sandbox template build <template-id> --wait
+npm run provision-image -- --image <your-workspace>/fde-intake-worker:latest
 ```
 
-Cut note: the build takes a few minutes (apt installs + browser download) —
-speed-ramp this in editing.
-
-```bash
-tenki sandbox registry publish \
-  --image <your-workspace>/fde-intake-worker:latest \
-  --from-template <template-id> \
-  --visibility private
-```
+Cut note: provisioning takes a few minutes (apt installs + browser download)
+— speed-ramp this in editing.
 
 Narration:
 
@@ -329,17 +326,17 @@ Learning beat:
 - Note the Playwright version pin in `setup-script.sh` and `package.json`
   match (`1.61.1`) — call out why: the cached browser revision has to match
   what the bundled `node_modules/playwright` expects at run time.
-- If you change this script later, `template update` + `template build --wait`
-  + `registry publish` again — versioned, not silently mutated.
+- If you change this script later, repeat `provision-image`; the published
+  image is versioned, not silently mutated.
 
 ## Segment 6: Persistent Volume
 
-Target time: 10:00-12:00
+Target time: 11:00-13:00
 
 Run locally:
 
 ```bash
-tenki sandbox volume create --workspace <your-workspace> --name fde-auth-state --size 1GB
+npm run create-volume
 ```
 
 Narration:
@@ -357,7 +354,7 @@ Learning beat:
 
 ## Segment 7: Capture the Test-Account Session
 
-Target time: 12:00-14:30
+Target time: 13:00-15:30
 
 Run locally:
 
@@ -397,15 +394,15 @@ Learning beat:
 
 ## Segment 8: Seed the Volume
 
-Target time: 14:30-15:30
+Target time: 15:30-16:30
 
 Run locally:
 
 ```bash
-tenki sandbox create --name fde-auth-seed --volume <volume-id>:/workspace/secrets
-tenki sandbox write --session <seed-session-id> --path /workspace/secrets/x.storageState.json --data-file ./secrets/x.storageState.json
-tenki sandbox write --session <seed-session-id> --path /workspace/secrets/linkedin.storageState.json --data-file ./secrets/linkedin.storageState.json
-tenki sandbox terminate --session <seed-session-id>
+npm run seed-auth-volume -- \
+  --volume <volume-id> \
+  --x-state ../secrets/x.storageState.json \
+  --linkedin-state ../secrets/linkedin.storageState.json
 ```
 
 Narration:
@@ -423,7 +420,7 @@ selector live.
 
 ## Segment 9: Notion and Nebius Setup
 
-Target time: 15:30-17:00
+Target time: 16:30-18:00
 
 Screen: Notion, then Nebius Token Factory console.
 
@@ -450,7 +447,7 @@ Learning beat:
 
 ## Segment 10: Run the Worker Locally
 
-Target time: 17:00-19:30
+Target time: 18:00-20:30
 
 Run locally:
 
@@ -476,7 +473,7 @@ Learning beat:
 
 ## Segment 11: Wire GitHub Actions and Trigger
 
-Target time: 19:30-21:30
+Target time: 20:30-22:30
 
 Screen: https://github.com/fruteroclub/fde-challenges-social-intake settings
 (secrets/variables), then the Actions tab.
@@ -491,16 +488,15 @@ Set:
 Trigger manually instead of waiting for the cron:
 
 ```bash
-gh workflow run refresh.yml
+gh workflow run refresh-mcp.yml
 gh run watch
 ```
 
-**Flag for live debugging:** `.github/workflows/refresh.yml` resolves the
-sandbox session ID by tagging the session and reading it back via
-`tenki sandbox list --json` — this was written from the CLI reference docs,
-not verified against a real response. If the `jq` filter comes back empty,
-that's the moment to run `tenki sandbox list --json | jq .` plain, look at the
-actual field names, and fix the filter on camera.
+**Flag for live debugging:** `.github/workflows/refresh-mcp.yml` builds the
+pinned MCP server, launches the worker image with explicit scope, mounts the
+auth volume, and clones the worker repository in the sandbox. It has not run
+against this account yet. If it fails, show the returned MCP error and compare
+it with the CLI failure rather than treating the workaround as magic.
 
 Narration:
 
@@ -510,7 +506,7 @@ doing one real job, and disappearing."
 
 ## Segment 12: Show the Results
 
-Target time: 21:30-22:30
+Target time: 22:30-23:30
 
 Screen: the Notion database, populated.
 
@@ -523,11 +519,11 @@ clarification loop yet, just filtering it out cleanly."
 
 ## Segment 13: Wrap, Recap, CTA
 
-Target time: 22:30-23:30
+Target time: 23:30-24:30
 
 Narration:
 
-"Recap: a Tenki template with Chromium baked in, a persistent volume holding
+"Recap: a prepared Tenki image with Chromium baked in, a persistent volume holding
 an authenticated session, a scheduled GitHub Actions trigger spinning up
 disposable workers, Nebius Token Factory doing the extraction, and Notion as
 the human review surface. Total compute cost for a run: fractions of a cent —
@@ -540,8 +536,8 @@ this pipeline finds its next challenge."
 
 ## Editing Notes
 
-- Keep the edited video under 22 minutes; cut waiting time from template
-  build, `npx playwright install --with-deps`, and any package installs.
+- Keep the edited video under 25 minutes; cut waiting time from image
+  provisioning, `npx playwright install --with-deps`, and package installs.
 - If Segments 8 or 11 turn into extended live-debugging, that's fine to keep
   in — it's the most honest FDE content in the video — but trim to the
   actual fix, not every dead end.
